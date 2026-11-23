@@ -28,7 +28,7 @@ Everything runs on your Mac. Nothing is sent anywhere except the downloads of th
    - a linked PDF: opens at the right page
    - a linked web page: opens and highlights the name
 
-Cmd-F only works on pages that loaded after Deep Find was installed or reloaded. On older tabs, Chrome's pages and PDFs opened in Chrome, Cmd-F still opens Chrome's own find bar.
+On Chrome's own pages (`chrome://`, the Web Store) and on PDFs open in Chrome's viewer, Cmd-F still opens Chrome's find bar. Use Option-Shift-F there.
 
 To get Chrome's find bar back everywhere, turn off **⌘F opens Deep Find** in the panel.
 To change the Option-Shift-F shortcut, open `chrome://extensions/shortcuts`.
