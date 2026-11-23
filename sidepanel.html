@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Deep Find</title>
+  <link rel="stylesheet" href="sidepanel.css">
+  <script src="lib/tesseract/tesseract.min.js"></script>
+  <script type="module" src="sidepanel.js"></script>
+</head>
+<body>
+  <form id="form" autocomplete="off">
+    <div class="row">
+      <input id="q" type="search" placeholder="Find on page, images and links" autofocus>
+      <button id="go" type="submit">Find</button>
+      <button id="stop" type="button" hidden>Stop</button>
+    </div>
+    <div class="row options">
+      <label><input id="ocr" type="checkbox" checked> OCR images and scans</label>
+      <label>Links <input id="max" type="number" min="0" max="500" step="10" value="50"></label>
+    </div>
+  </form>
+
+  <div id="status" aria-live="polite"></div>
+  <ul id="active"></ul>
+  <ol id="results"></ol>
+  <details id="problems" hidden>
+    <summary></summary>
+    <ul></ul>
+  </details>
+
+  <footer>
+    <button id="clear" type="button" class="link">Clear cache</button>
+    <span id="cacheInfo"></span>
+  </footer>
+</body>
+</html>

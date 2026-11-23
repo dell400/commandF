@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Deep Find test harness</title>
+  <link rel="stylesheet" href="../sidepanel.css">
+  <style>
+    html, body { height: 100%; }
+    body { display: flex; padding: 0; }
+    #panel { width: 380px; flex: none; padding: 12px; overflow: auto; border-right: 1px solid var(--line); }
+    #tab { flex: 1; border: 0; height: 100%; background: #fff; }
+  </style>
+  <!-- Stand-in for the chrome.* APIs the side panel uses. The "tab" is the iframe. -->
+  <script>
+    const TAB_URL = new URLSearchParams(location.search).get("page") || "fixtures/gov-page.html";
+    const store = {};
+    const opened = (window.__opened = []);
+    const tabFrame = () => document.getElementById("tab");
+    const tabLoaded = new Promise((r) => addEventListener("DOMContentLoaded", () => {
+      const f = tabFrame();
+      f.addEventListener("load", r, { once: true });
+      f.src = TAB_URL;
+    }));
+    const evalInTab = async (code) => { await tabLoaded; return tabFrame().contentWindow.eval(code); };
+    window.chrome = {
+      tabs: {
+        async query() { await tabLoaded; const w = tabFrame().contentWindow; return [{ id: 1, url: w.location.href, title: w.document.title }]; },
+        async create(o) { opened.push(o.url); console.log("tabs.create", o.url); },
+        async update(id, o) { opened.push(o.url); console.log("tabs.update", o.url); },
+      },
+      scripting: {
+        async executeScript({ files, func, args = [] }) {
+          const code = files ? await (await fetch("../" + files[0])).text()
+                             : `(${func})(...${JSON.stringify(args)})`;
+          return [{ result: await evalInTab(code) }];
+        },
+      },
+      storage: {
+        local: {
+          async get(keys) {
+            if (keys == null) return { ...store };
+            const out = {};
+            for (const k of [].concat(keys)) if (k in store) out[k] = store[k];
+            return out;
+          },
+          async set(o) { Object.assign(store, JSON.parse(JSON.stringify(o))); },
+          async remove(keys) { for (const k of [].concat(keys)) delete store[k]; },
+        },
+      },
+    };
+  </script>
+  <script src="../lib/tesseract/tesseract.min.js"></script>
+  <script type="module" src="../sidepanel.js"></script>
+</head>
+<body>
+  <div id="panel">
+    <form id="form" autocomplete="off">
+      <div class="row">
+        <input id="q" type="search" placeholder="Find on page, images and links" autofocus>
+        <button id="go" type="submit">Find</button>
+        <button id="stop" type="button" hidden>Stop</button>
+      </div>
+      <div class="row options">
+        <label><input id="ocr" type="checkbox" checked> OCR images and scans</label>
+        <label>Links <input id="max" type="number" min="0" max="500" step="10" value="50"></label>
+      </div>
+    </form>
+    <div id="status" aria-live="polite"></div>
+    <ul id="active"></ul>
+    <ol id="results"></ol>
+    <details id="problems" hidden><summary></summary><ul></ul></details>
+    <footer>
+      <button id="clear" type="button" class="link">Clear cache</button>
+      <span id="cacheInfo"></span>
+    </footer>
+  </div>
+  <iframe id="tab" title="Simulated browser tab"></iframe>
+</body>
+</html>
