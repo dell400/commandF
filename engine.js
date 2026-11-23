@@ -356,6 +356,114 @@ export async function search(page, opts) {
   return { ...stats, sources: stats.sources.size, active: [] };
 }
 
+// ---------- Link scanner (for the Cmd-F find bar) ----------
+//
+// Text extraction does not depend on the keyword, so one download per URL
+// serves every keystroke. Jobs are shared between scans; a new scan for a
+// longer keyword just re-reads the pages already extracted.
+
+const jobs = new Map(); // key -> job
+const queue = [];       // jobs waiting to start
+let running = 0;
+
+function makeJob(key, item, useOcr, cache) {
+  const job = { key, item, pages: [], listeners: new Set(), waiters: 0, started: false, done: false, error: null };
+  job.finished = new Promise((r) => (job.resolve = r));
+  job.run = async () => {
+    const onPage = (p) => { job.pages.push(p); job.listeners.forEach((l) => l(p)); };
+    if (item.type === "image") {
+      const ck = `v${CACHE_VERSION}:img:${item.url}`;
+      let text = (await cache.get(ck))?.text;
+      if (text == null) {
+        const res = await fetch(item.url, { credentials: "include" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        text = await ocr(await res.blob());
+        await cache.set(ck, { text });
+      }
+      onPage({ n: null, text, via: "ocr", kind: "image" });
+    } else {
+      const doc = await getDoc(item.url, { useOcr, onPage }, cache);
+      job.kind = doc.kind;
+    }
+  };
+  return job;
+}
+
+function pump() {
+  while (running < DOWNLOAD_CONCURRENCY && queue.length) {
+    const job = queue.shift();
+    if (job.waiters === 0) { jobs.delete(job.key); continue; } // nobody wants it any more
+    job.started = true;
+    running++;
+    job.run()
+      .catch((e) => { job.error = e; jobs.delete(job.key); }) // failed jobs are retried next time
+      .finally(() => { job.done = true; running--; job.resolve(); pump(); });
+  }
+}
+
+function getJob(item, useOcr, cache) {
+  const key = `${item.type}|${useOcr ? "ocr" : "plain"}|${item.url}`;
+  let job = jobs.get(key);
+  if (!job) {
+    job = makeJob(key, item, useOcr, cache);
+    jobs.set(key, job);
+    queue.push(job);
+  }
+  return job;
+}
+
+/**
+ * Finds which links and images contain the keyword. Reports each one once,
+ * with its first match: onHit({ url, type, kind, page, via, before, match, after }).
+ * opts: { keyword, links: [{url,label}], images: [{url}], useOcr, maxLinks, signal,
+ *         cache, onHit, onProgress({ done, total }) }
+ */
+export async function scanLinks(opts) {
+  const { keyword, useOcr = true, maxLinks = 50, signal, cache, onHit, onProgress } = opts;
+  const re = makeMatcher(keyword);
+  if (!re) return { hits: 0, done: 0, total: 0 };
+  const items = [
+    ...(useOcr ? (opts.images || []).map((i) => ({ ...i, type: "image" })) : []),
+    ...prioritize(opts.links || []).slice(0, maxLinks).map((l) => ({ ...l, type: "link" })),
+  ];
+  let done = 0, hits = 0, failed = 0;
+  const progress = () => onProgress?.({ done, total: items.length });
+  progress();
+
+  // Promise executors run now, so every waiter is registered before pump().
+  const waits = items.map((item) => new Promise((resolve) => {
+    const job = getJob(item, useOcr, cache);
+    job.waiters++;
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      job.listeners.delete(check);
+      job.waiters--;
+      if (job.error) failed++;
+      done++;
+      progress();
+      resolve();
+    };
+    const check = (p) => {
+      if (finished) return;
+      const m = findMatches(p.text, re)[0];
+      if (!m) return;
+      hits++;
+      onHit?.({ url: item.url, type: item.type, kind: p.kind || "html", page: p.n, via: p.via, ...m });
+      finish();
+    };
+    for (const p of job.pages) check(p);
+    if (finished) return;
+    job.listeners.add(check);
+    job.finished.then(finish);
+    signal?.addEventListener("abort", finish, { once: true });
+  }));
+  pump();
+  await Promise.all(waits);
+  return { hits, failed, done, total: items.length };
+}
+
 function shortName(link) {
   try {
     const u = new URL(link.url);

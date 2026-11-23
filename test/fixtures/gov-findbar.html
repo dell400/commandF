@@ -1,0 +1,55 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Springfield County — Board Archive (find bar test)</title>
+<!-- Test page for findbar.js. Same content as gov-page.html, plus two on-page
+     mentions of the name. The script below stands in for chrome.* and sends
+     the bar's port straight to offscreen.js running in this page. -->
+<script>
+  function portPair() {
+    const a = { msg: [], disc: [] }, b = { msg: [], disc: [] };
+    const end = (me, other) => ({
+      name: "deep-find",
+      postMessage: (m) => setTimeout(() => other.msg.forEach((f) => f(structuredClone(m)))),
+      onMessage: { addListener: (f) => me.msg.push(f) },
+      onDisconnect: { addListener: (f) => me.disc.push(f) },
+      disconnect: () => other.disc.forEach((f) => f()),
+    });
+    return [end(a, b), end(b, a)];
+  }
+  window.__sent = [];
+  window.__opened = [];
+  window.open = (url) => { window.__opened.push(url); return null; };
+  window.chrome = {
+    runtime: {
+      id: "test",
+      async sendMessage(m) { window.__sent.push(m); return true; },
+      connect() { const [page, worker] = portPair(); window.__attach(worker); return page; },
+    },
+    storage: { local: { async get() { return {}; } }, onChanged: { addListener() {} } },
+  };
+</script>
+<script src="../../lib/tesseract/tesseract.min.js"></script>
+<script type="module">
+  import { attach } from "../../offscreen.js";
+  window.__attach = attach;
+</script>
+<script src="../../findbar.js"></script>
+</head>
+<body style="font-family: Georgia, serif; max-width: 720px; margin: 24px">
+<nav><a href="/">Home</a> | <a href="annual-report.html">Annual report</a> | <a href="mailto:clerk@example.gov">Contact</a></nav>
+<h1>Board Meeting Archive</h1>
+<p>Questions about parks go to Bartholomew Quince in the clerk's office.</p>
+<p>Records of the county board are listed below. Older records are scanned.</p>
+<p><img src="notice.png" alt="Appointment notice" width="510"></p>
+<div style="height: 900px; border-left: 2px dashed #ccc; padding-left: 8px; color: #888">(spacer, so the page scrolls)</div>
+<ul>
+  <li><a href="minutes-2024.pdf">Council minutes, March 2024 (PDF)</a></li>
+  <li><a href="hearing-record-1998.pdf">Planning hearing record, 1998 (scanned PDF)</a></li>
+  <li><a href="staff-directory.html">Staff directory</a></li>
+  <li><a href="annual-report.html#summary">Annual report summary</a></li>
+  <li><a href="missing.html">Removed page</a></li>
+  <li><a href="gis-data.zip">GIS data (zip)</a></li>
+</ul>
+<div style="height: 900px"></div>
+<p>Last updated by B. Quince. Bartholomew
+  Quince also keeps the parks calendar.</p>
+</body></html>

@@ -1,4 +1,5 @@
 import { search, stopOcr } from "./engine.js";
+import { idbCache } from "./idbcache.js";
 
 const $ = (id) => document.getElementById(id);
 const form = $("form"), q = $("q"), goBtn = $("go"), stopBtn = $("stop");
@@ -44,31 +45,38 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-// ---------- Cache (chrome.storage.local, 7 days) ----------
+// ---------- Cache (IndexedDB, 7 days; shared with the find bar) ----------
 
-const WEEK = 7 * 24 * 3600 * 1000;
-const cache = {
-  async get(key) {
-    const v = (await chrome.storage.local.get(key))[key];
-    if (!v || Date.now() - v.t > WEEK) return undefined;
-    return v.d;
-  },
-  async set(key, d) {
-    try { await chrome.storage.local.set({ [key]: { t: Date.now(), d } }); } catch {}
-  },
-};
+const cache = idbCache;
 
 async function showCacheInfo() {
-  const all = await chrome.storage.local.get(null);
-  const n = Object.keys(all).filter((k) => /^v\d+:/.test(k)).length;
+  const n = await cache.count();
   $("cacheInfo").textContent = n ? `${n} item${n === 1 ? "" : "s"} cached` : "";
 }
 $("clear").addEventListener("click", async () => {
-  const all = await chrome.storage.local.get(null);
-  await chrome.storage.local.remove(Object.keys(all).filter((k) => /^v\d+:/.test(k)));
+  await cache.clear();
   showCacheInfo();
 });
 showCacheInfo();
+
+// ---------- Run a search sent from the find bar's list button ----------
+
+function runQuery(query) {
+  if (!query || controller) return;
+  q.value = query;
+  form.requestSubmit();
+}
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg?.type === "deep-find-run") {
+    chrome.storage.session?.remove("pendingQuery").catch(() => {});
+    runQuery(msg.query);
+  }
+});
+chrome.storage.session?.get("pendingQuery").then(({ pendingQuery }) => {
+  if (!pendingQuery) return;
+  chrome.storage.session.remove("pendingQuery");
+  runQuery(pendingQuery);
+}).catch(() => {});
 
 // ---------- Read the current tab ----------
 

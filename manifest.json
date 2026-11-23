@@ -1,10 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Deep Find",
-  "version": "1.1.0",
-  "description": "Find a word on this page, in its images (OCR), and in the pages and PDFs it links to.",
+  "version": "2.0.0",
+  "description": "Cmd-F that also finds the word in linked pages and PDFs, scanned documents and images.",
   "permissions": [
     "sidePanel",
+    "offscreen",
     "activeTab",
     "scripting",
     "storage",
@@ -23,10 +24,9 @@
         "https://*/*"
       ],
       "js": [
-        "hotkey.js"
+        "findbar.js"
       ],
-      "run_at": "document_start",
-      "all_frames": true
+      "run_at": "document_start"
     }
   ],
   "side_panel": {
@@ -50,7 +50,7 @@
         "default": "Alt+Shift+F",
         "mac": "Alt+Shift+F"
       },
-      "description": "Open Deep Find"
+      "description": "Open the Deep Find side panel"
     }
   },
   "content_security_policy": {
