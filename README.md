@@ -19,8 +19,8 @@ Everything runs on your Mac. Nothing is sent anywhere except the downloads of th
 ## Use
 
 1. Go to the page you want to search, for example a gov page that lists meeting minutes.
-2. Press **Option-Shift-F**, or click the toolbar icon. The side panel opens.
-   Selected text on the page fills the search box.
+2. Press **Cmd-F**. Deep Find opens in the side panel instead of Chrome's find bar.
+   Option-Shift-F and the toolbar icon also open it. Selected text on the page fills the search box.
 3. Type the name and press **Return**.
 4. Results appear as they are found. Click one to go there:
    - text on this page: Chrome selects it
@@ -28,7 +28,10 @@ Everything runs on your Mac. Nothing is sent anywhere except the downloads of th
    - a linked PDF: opens at the right page
    - a linked web page: opens and highlights the name
 
-To change the shortcut, open `chrome://extensions/shortcuts`.
+Cmd-F only works on pages that loaded after Deep Find was installed or reloaded. On older tabs, Chrome's pages and PDFs opened in Chrome, Cmd-F still opens Chrome's own find bar.
+
+To get Chrome's find bar back everywhere, turn off **⌘F opens Deep Find** in the panel.
+To change the Option-Shift-F shortcut, open `chrome://extensions/shortcuts`.
 
 ### Options
 
@@ -57,6 +60,7 @@ Click **Clear cache** at the bottom of the panel if a document has changed.
 | `manifest.json` | Extension setup, permissions, shortcut |
 | `background.js` | Opens the side panel |
 | `content.js` | Reads the current page: text, images, links |
+| `hotkey.js` | On every page: sends Cmd-F to Deep Find |
 | `engine.js` | Downloads, PDF text, OCR, matching. No `chrome.*` calls |
 | `sidepanel.html/.css/.js` | The panel UI, cache, opening results |
 | `lib/` | pdf.js 6.5.438 and Tesseract.js 7.0.0 (core 7.0.0, English data) |

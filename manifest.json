@@ -1,20 +1,55 @@
 {
   "manifest_version": 3,
   "name": "Deep Find",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Find a word on this page, in its images (OCR), and in the pages and PDFs it links to.",
-  "permissions": ["sidePanel", "activeTab", "scripting", "storage", "unlimitedStorage"],
-  "host_permissions": ["<all_urls>"],
-  "background": { "service_worker": "background.js" },
-  "side_panel": { "default_path": "sidepanel.html" },
+  "permissions": [
+    "sidePanel",
+    "activeTab",
+    "scripting",
+    "storage",
+    "unlimitedStorage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "hotkey.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
   "action": {
     "default_title": "Deep Find",
-    "default_icon": { "16": "icons/icon16.png", "32": "icons/icon32.png" }
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png"
+    }
   },
-  "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "commands": {
     "open-deep-find": {
-      "suggested_key": { "default": "Alt+Shift+F", "mac": "Alt+Shift+F" },
+      "suggested_key": {
+        "default": "Alt+Shift+F",
+        "mac": "Alt+Shift+F"
+      },
       "description": "Open Deep Find"
     }
   },

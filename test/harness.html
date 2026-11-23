@@ -22,7 +22,18 @@
       f.src = TAB_URL;
     }));
     const evalInTab = async (code) => { await tabLoaded; return tabFrame().contentWindow.eval(code); };
+    const panelListeners = [];
+    const storageListeners = [];
+    window.__messages = [];
     window.chrome = {
+      runtime: {
+        onMessage: { addListener: (fn) => panelListeners.push(fn) },
+        // Stands in for background.js: Cmd-F on the page focuses the open panel.
+        async sendMessage(msg) {
+          window.__messages.push(msg);
+          if (msg.type === "deep-find-open") panelListeners.forEach((fn) => fn({ type: "deep-find-focus", selection: msg.selection }));
+        },
+      },
       tabs: {
         async query() { await tabLoaded; const w = tabFrame().contentWindow; return [{ id: 1, url: w.location.href, title: w.document.title }]; },
         async create(o) { opened.push(o.url); console.log("tabs.create", o.url); },
@@ -43,9 +54,10 @@
             for (const k of [].concat(keys)) if (k in store) out[k] = store[k];
             return out;
           },
-          async set(o) { Object.assign(store, JSON.parse(JSON.stringify(o))); },
-          async remove(keys) { for (const k of [].concat(keys)) delete store[k]; },
+          async set(o) { Object.assign(store, JSON.parse(JSON.stringify(o))); storageListeners.forEach((fn) => fn(o)); },
+          async remove(keys) { for (const k of [].concat(keys)) delete store[k]; storageListeners.forEach((fn) => fn({})); },
         },
+        onChanged: { addListener: (fn) => storageListeners.push(fn) },
       },
     };
   </script>
@@ -63,6 +75,7 @@
       <div class="row options">
         <label><input id="ocr" type="checkbox" checked> OCR images and scans</label>
         <label>Links <input id="max" type="number" min="0" max="500" step="10" value="50"></label>
+        <label><input id="cmdf" type="checkbox" checked> ⌘F opens Deep Find</label>
       </div>
     </form>
     <div id="status" aria-live="polite"></div>

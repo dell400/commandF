@@ -2,7 +2,7 @@ import { search, stopOcr } from "./engine.js";
 
 const $ = (id) => document.getElementById(id);
 const form = $("form"), q = $("q"), goBtn = $("go"), stopBtn = $("stop");
-const ocrBox = $("ocr"), maxBox = $("max");
+const ocrBox = $("ocr"), maxBox = $("max"), findBox = $("cmdf");
 const statusEl = $("status"), activeEl = $("active"), resultsEl = $("results");
 const problemsEl = $("problems");
 
@@ -15,11 +15,34 @@ chrome.storage.local.get(["settings"]).then(({ settings }) => {
   if (!settings) return;
   ocrBox.checked = settings.useOcr ?? true;
   maxBox.value = settings.maxLinks ?? 50;
+  findBox.checked = settings.takeOverFind ?? true;
 });
 const saveSettings = () =>
-  chrome.storage.local.set({ settings: { useOcr: ocrBox.checked, maxLinks: Number(maxBox.value) } });
+  chrome.storage.local.set({
+    settings: { useOcr: ocrBox.checked, maxLinks: Number(maxBox.value), takeOverFind: findBox.checked },
+  });
 ocrBox.addEventListener("change", saveSettings);
 maxBox.addEventListener("change", saveSettings);
+findBox.addEventListener("change", saveSettings);
+
+// ---------- Focus (Cmd-F while the panel is open) ----------
+
+function focusSearch(selection) {
+  window.focus();
+  if (selection && !controller) q.value = selection;
+  q.focus();
+  q.select();
+}
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg?.type === "deep-find-focus") focusSearch(msg.selection);
+});
+// Cmd-F inside the panel itself jumps back to the search box.
+document.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "f") {
+    e.preventDefault();
+    focusSearch("");
+  }
+});
 
 // ---------- Cache (chrome.storage.local, 7 days) ----------
 
