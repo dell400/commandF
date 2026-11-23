@@ -12,6 +12,9 @@ const PDF_OPTS = {
   wasmUrl: LIB + "pdfjs/wasm/",
   iccUrl: LIB + "pdfjs/iccs/",
   isEvalSupported: false,
+  // Errors only. Broken fonts in real-world PDFs log harmless "TT: ..."
+  // warnings that Chrome lists on the extension's Errors page.
+  verbosity: pdfjsLib.VerbosityLevel?.ERRORS ?? 0,
 };
 
 const DOWNLOAD_CONCURRENCY = 5;
