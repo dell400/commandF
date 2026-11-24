@@ -238,9 +238,20 @@ async function getDoc(url, opts, cache) {
 
 // ---------- Search ----------
 
+// Sign-in, sign-out and unsubscribe links are never worth reading, and a GET
+// to some sign-out links would sign the user out.
+const ACCOUNT_LINK = /\/(log[-_]?(in|out|off)|sign[-_]?(in|out|off|up)|logoff|unsubscribe)(\b|_|$)/i;
+
+// Order: PDFs the reader can see, hidden PDFs, other visible links, other
+// hidden links (menus and drawers). Within each group, page order.
 function prioritize(links) {
   const isPdf = (l) => /\.pdf(\?|$)/i.test(l.url) || /\bpdf\b/i.test(l.label);
-  return [...links.filter(isPdf), ...links.filter((l) => !isPdf(l))];
+  const rank = (l) => (isPdf(l) ? 0 : 2) + (l.hidden ? 1 : 0);
+  return links
+    .filter((l) => { try { return !ACCOUNT_LINK.test(new URL(l.url).pathname); } catch { return false; } })
+    .map((l, i) => ({ l, i, r: rank(l) }))
+    .sort((a, b) => a.r - b.r || a.i - b.i)
+    .map((x) => x.l);
 }
 
 async function pool(items, limit, fn, signal) {

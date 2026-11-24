@@ -35,7 +35,15 @@
 <script src="../../findbar.js"></script>
 </head>
 <body style="font-family: Georgia, serif; max-width: 720px; margin: 24px">
-<nav><a href="/">Home</a> | <a href="annual-report.html">Annual report</a> | <a href="mailto:clerk@example.gov">Contact</a></nav>
+<!-- A closed menu with more links than the "Links" limit, like GitHub's header.
+     Visible links below must still be searched first. -->
+<div id="menu" hidden></div>
+<script>
+  for (let i = 1; i <= 60; i++) {
+    menu.append(Object.assign(document.createElement("a"), { href: `menu/item-${i}.html`, textContent: `Menu item ${i}` }));
+  }
+</script>
+<nav><a href="/">Home</a> | <a href="annual-report.html">Annual report</a> | <a href="mailto:clerk@example.gov">Contact</a> | <a href="/logout">Sign out</a></nav>
 <h1>Board Meeting Archive</h1>
 <p>Questions about parks go to Bartholomew Quince in the clerk's office.</p>
 <p>Records of the county board are listed below. Older records are scanned.</p>

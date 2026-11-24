@@ -416,6 +416,7 @@
     targets = new Map();
     const here = location.href.split("#")[0];
     const links = [], images = [];
+    const byUrl = new Map();
     const vis = (el) => (el.checkVisibility ? el.checkVisibility({ checkVisibilityCSS: true }) : true);
     const addLink = (el, raw, label) => {
       let u;
@@ -425,12 +426,16 @@
       const url = u.href;
       if (url === here) return;
       const key = "link|" + url;
-      const prev = targets.get(key);
+      const shown = vis(el);
+      const prev = byUrl.get(url);
       if (!prev) {
         targets.set(key, el);
-        links.push({ url, label: (label || "").replace(/\s+/g, " ").trim().slice(0, 120) });
-      } else if (!vis(prev) && vis(el)) {
+        const link = { url, label: (label || "").replace(/\s+/g, " ").trim().slice(0, 120), hidden: !shown };
+        byUrl.set(url, link);
+        links.push(link);
+      } else if (prev.hidden && shown) {
         targets.set(key, el); // prefer a link the reader can see
+        prev.hidden = false;
       }
     };
     document.querySelectorAll("a[href], area[href]").forEach((a) =>

@@ -39,7 +39,7 @@ To change the Option-Shift-F shortcut, open `chrome://extensions/shortcuts`.
 ### Options (in the side panel)
 
 - **OCR images and scans**: turn off for a fast, text-only search.
-- **Links**: how many links to search (default 50). PDF links are searched first.
+- **Links**: how many links to search (default 50). PDF links are searched first, then links you can see on the page, then links hidden in closed menus. Sign-in, sign-out and unsubscribe links are never opened.
 - **Use Deep Find for ⌘F**: off gives you Chrome's own find bar.
 
 ### Cache
@@ -82,4 +82,4 @@ python3 -m http.server 8765
 
 Then open `http://127.0.0.1:8765/test/harness.html` and search for `Bartholomew Quince`. Expected: 4 matches (a web page, a text PDF p.2, an image, a scanned PDF p.2).
 
-For the find bar, open `http://127.0.0.1:8765/test/fixtures/gov-findbar.html`, press Cmd-F and type `Bartholomew Quince`. Expected: `6` stops — 2 on the page, the image, 2 PDFs and the staff page.
+For the find bar, open `http://127.0.0.1:8765/test/fixtures/gov-findbar.html`, press Cmd-F and type `Bartholomew Quince`. Expected: `6` stops — 2 on the page, the image, 2 PDFs and the staff page. The page also has a hidden menu of 60 links, so this checks that visible links are searched first.
