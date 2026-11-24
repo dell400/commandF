@@ -1,7 +1,8 @@
 // Deep Find bar. Cmd-F (Ctrl-F off the Mac) opens a find bar like Chrome's.
-// Enter steps through the matches on the page in order. Links whose page or
-// PDF contains the word, and images whose text does, are extra stops: one
-// per link or image, in page order.
+// Enter steps through the matches on the page in order.
+// Cmd-F again also searches links and images: links whose page or PDF
+// contains the word, and images whose text does, become extra stops, one per
+// link or image, in page order. A third Cmd-F closes the bar.
 //
 // Runs in the top frame of every http(s) page. Downloads and OCR happen in
 // the extension's offscreen document (offscreen.js), reached through a port.
@@ -25,6 +26,7 @@
 
   let ui = null;          // built on first open
   let isOpen = false;
+  let deep = false;       // second Cmd-F: links and images are searched too
   let query = "";         // the query the stops belong to
   let stops = [];         // sorted in page order
   let current = null;     // the active stop
@@ -45,7 +47,7 @@
       if (!settings.takeOverFind) return;
       e.preventDefault();
       e.stopImmediatePropagation();
-      openBar();
+      pressFind();
     } else if (isOpen && mod && !e.altKey && key === "g") {
       e.preventDefault();
       e.stopImmediatePropagation();
@@ -166,6 +168,13 @@
     document.documentElement.append(host);
   }
 
+  // 1st press: find on the page. 2nd: also search links. 3rd: close.
+  function pressFind() {
+    if (!isOpen) openBar();
+    else if (!deep) searchLinks();
+    else closeBar(true);
+  }
+
   function openBar() {
     if (!ui || !ui.host.isConnected) build();
     let sel = "";
@@ -173,15 +182,27 @@
     if (sel && sel.length <= 100 && !sel.includes("\n")) ui.input.value = sel;
     if (!isOpen) {
       isOpen = true;
+      deep = false;
       ui.host.style.display = "block";
     }
     ui.input.focus();
     ui.input.select();
     if (ui.input.value !== query || !stops.length) flushQuery();
+    status();
+  }
+
+  function searchLinks() {
+    deep = true;
+    ui.input.focus();
+    flushQuery();
+    clearTimeout(linkTimer);
+    if (linkQueryOk() && !scan.running) startScan();
+    status();
   }
 
   function closeBar(selectMatch) {
     isOpen = false;
+    deep = false;
     ui.host.style.display = "none";
     cancelScan();
     clearTimeout(textTimer);
@@ -400,10 +421,13 @@
       const spin = Object.assign(document.createElement("span"), { className: "spin", textContent: "↻" });
       ui.links.replaceChildren(spin, scan.total ? ` links ${scan.done}/${scan.total}` : " links");
       ui.links.title = "Searching linked pages, PDFs and images";
-    } else if (linkStops) {
+    } else if (linkStops || scan.finished) {
       ui.links.textContent = `${linkStops} in links`;
       ui.links.title = `${linkStops} linked page${linkStops === 1 ? "" : "s"} or image${linkStops === 1 ? "" : "s"} contain this` +
         (scan.failed ? `. ${scan.failed} could not be read.` : "");
+    } else if (!deep && linkQueryOk()) {
+      ui.links.textContent = `${isMac ? "⌘F" : "Ctrl+F"}: links`;
+      ui.links.title = `Press ${isMac ? "⌘F" : "Ctrl+F"} again to also search linked pages, PDFs and images`;
     } else {
       ui.links.textContent = "";
       ui.links.title = "";
@@ -453,9 +477,11 @@
     return { links, images };
   }
 
+  const linkQueryOk = () => query.replace(/\s/g, "").length >= MIN_LINK_QUERY;
+
   function scheduleLinks() {
     clearTimeout(linkTimer);
-    if (query.replace(/\s/g, "").length < MIN_LINK_QUERY) return;
+    if (!deep || !linkQueryOk()) return;
     linkTimer = setTimeout(startScan, LINK_DELAY);
   }
 
@@ -498,7 +524,7 @@
   function onPortMessage(m) {
     if (m?.id !== scanId || !isOpen) return;
     if (m.type === "progress") { scan.done = m.done; scan.total = m.total; }
-    else if (m.type === "done") { scan.running = false; scan.failed = m.failed || 0; }
+    else if (m.type === "done") { scan.running = false; scan.finished = true; scan.failed = m.failed || 0; }
     else if (m.type === "hit") addHit(m.hit);
     status();
   }
@@ -515,5 +541,5 @@
   }
 
   // For tests: lets a harness drive the bar without key events.
-  window.__deepFind = { open: openBar, close: () => closeBar(true), step, state: () => ({ query, stops, current, scan, isOpen }) };
+  window.__deepFind = { press: pressFind, open: openBar, close: () => closeBar(true), step, state: () => ({ query, stops, current, scan, isOpen, deep }) };
 })();

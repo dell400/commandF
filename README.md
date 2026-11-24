@@ -21,12 +21,13 @@ Everything runs on your Mac. Nothing is sent anywhere except the downloads of th
    Selected text on the page fills it in.
 2. Type a word or name. Matches on the page turn yellow and the count shows, for example `1/6`.
 3. Press **Enter** for the next match, **Shift-Enter** for the previous one. **Cmd-G** and **Cmd-Shift-G** work too.
-4. After a short pause, Deep Find also searches the links on the page (words of 3 or more letters).
+4. Press **Cmd-F again** to also search the links on the page (words of 3 or more letters). The bar shows `⌘F: links` as a reminder.
    - Each link whose page or PDF contains the word becomes one stop, in page order. Matching links turn light blue.
+   - If you change the word, the links are searched again for the new word.
    - At a link stop, the bar shows where the word is (for example "In linked PDF, page 2") and a line of text around it. **Open** opens the PDF at that page, or the web page with the word highlighted.
    - Images whose text contains the word are stops too.
    - While links are searched, the bar shows `↻ links 12/50`. When done, it shows how many links matched.
-5. **Esc** closes the bar and leaves the last match selected.
+5. Press **Cmd-F a third time**, or **Esc**, to close the bar. The last match on the page stays selected.
 
 The **≡** button opens the side panel with every result in a list.
 Option-Shift-F or the toolbar icon also open the side panel.
@@ -82,4 +83,4 @@ python3 -m http.server 8765
 
 Then open `http://127.0.0.1:8765/test/harness.html` and search for `Bartholomew Quince`. Expected: 4 matches (a web page, a text PDF p.2, an image, a scanned PDF p.2).
 
-For the find bar, open `http://127.0.0.1:8765/test/fixtures/gov-findbar.html`, press Cmd-F and type `Bartholomew Quince`. Expected: `6` stops — 2 on the page, the image, 2 PDFs and the staff page. The page also has a hidden menu of 60 links, so this checks that visible links are searched first.
+For the find bar, open `http://127.0.0.1:8765/test/fixtures/gov-findbar.html`, press Cmd-F and type `Bartholomew Quince`. Expected: `1/2` (on the page only). Press Cmd-F again. Expected: `6` stops — 2 on the page, the image, 2 PDFs and the staff page. The page also has a hidden menu of 60 links, so this checks that visible links are searched first.
